@@ -5,7 +5,7 @@ def randselect(list, num):
 	l = len(list)
 	if l <= num:
 		return shuffle(list)
-	if l > 5*num: 
+	if l > 5*num:
 		return sample(list[:5*num], num)
 
 def byteify(input):
@@ -22,7 +22,7 @@ def byteify(input):
 def file_to_list(file):
 	'''1 Dimensional'''
 	data = []
-	f = open(file, 'r')
+	f = open(file, 'r', encoding="utf-8" )
 	contents = csv.reader(f.read().splitlines())
 	count = 0
 	try:
@@ -39,4 +39,4 @@ def file_to_list(file):
 		return data[0]
 	else:
 		return data
-	
+

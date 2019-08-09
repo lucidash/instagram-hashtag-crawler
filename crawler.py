@@ -1,4 +1,5 @@
 import json
+import codecs
 import os
 from collections import deque
 from re import findall
@@ -19,8 +20,8 @@ def visit_profile(api, hashtag, config):
 				'posts' : []
 			}
 			feed = get_posts(api, hashtag, config)
-			with open(config['profile_path'] + os.sep + str(hashtag) + '_rawfeed.json', 'w') as outfile:
-					json.dump(feed, outfile, indent=2)
+			with open(config['profile_path'] + os.sep + str(hashtag) + '.json', 'w', encoding='utf-8') as outfile:
+					json.dump(feed, outfile, indent=2, ensure_ascii=False)
 			profile_dic = {}
 			posts = [beautify_post(api, post, profile_dic) for post in feed]
 			posts = list(filter(lambda x: not x is None, posts))
@@ -30,14 +31,14 @@ def visit_profile(api, hashtag, config):
 				processed_tagfeed['posts'] = posts[:config['max_collect_media']]
 
 			try:
-				if not os.path.exists(config['profile_path'] + os.sep): os.makedirs(config['profile_path'])  
+				if not os.path.exists(config['profile_path'] + os.sep): os.makedirs(config['profile_path'])
 			except Exception as e:
 				print('exception in profile path')
 				raise e
 
 			try:
-				with open(config['profile_path'] + os.sep + str(hashtag) + '.json', 'w') as outfile:
-					json.dump(processed_tagfeed, outfile, indent=2)
+				with open(config['profile_path'] + os.sep + str(hashtag) + '.json', 'w', encoding='utf-8') as outfile:
+					json.dump(processed_tagfeed, outfile, indent=2, ensure_ascii=False)
 			except Exception as e:
 				print('exception while dumping')
 				raise e
@@ -57,7 +58,9 @@ def beautify_post(api, post, profile_dic):
 		# print(post)
 		user_id = post['user']['pk']
 		profile = profile_dic.get(user_id, False)
-		while True:
+		retry = 1
+		while retry > 0:
+			retry -= 1
 			try:
 				sleep(0.05)
 				if not profile:
@@ -73,6 +76,8 @@ def beautify_post(api, post, profile_dic):
 		# profile = api.username_info('simon_oncepiglet')
 		# print(profile)
 		# print('Visiting:', profile['user']['username'])
+		if retry == 0:
+			return None
 		processed_media = {
 			'user_id' : user_id,
 			'username' : profile['user']['username'],
@@ -99,7 +104,8 @@ def get_posts(api, hashtag, config):
 		feed = []
 		try:
 			uuid = api.generate_uuid(return_hex=False, seed='0')
-			results = api.feed_tag(hashtag, rank_token=uuid, min_timestamp=config['min_timestamp'])
+			# results = api.feed_tag(hashtag, rank_token=uuid, min_timestamp=config['min_timestamp'])
+			results = api.username_feed(hashtag, min_timestamp=config['min_timestamp'])
 		except Exception as e:
 			print('exception while getting feed1')
 			raise e
@@ -111,7 +117,8 @@ def get_posts(api, hashtag, config):
 		while next_max_id and len(feed) < config['max_collect_media']:
 			print("next_max_id", next_max_id, "len(feed) < max_collect_media", len(feed) < config['max_collect_media'] , len(feed))
 			try:
-				results = api.feed_tag(hashtag, rank_token=uuid, max_id=next_max_id)
+				# results = api.feed_tag(hashtag, rank_token=uuid, max_id=next_max_id)
+				results = api.username_feed(hashtag, max_id=next_max_id)
 			except Exception as e:
 				print('exception while getting feed2')
 				if str(e) == 'Bad Request: Please wait a few minutes before you try again.':
